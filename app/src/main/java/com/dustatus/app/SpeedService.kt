@@ -12,6 +12,9 @@ import android.view.Gravity
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import java.util.Locale
 
 class SpeedService : Service() {
@@ -30,13 +33,17 @@ class SpeedService : Service() {
    val tx = TrafficStats.getTotalTxBytes()
    if (lastTime > 0 && rx >= 0 && tx >= 0) {
     val seconds = (now - lastTime).coerceAtLeast(1) / 1000.0
-    down?.text = "↓ " + speed(((rx-lastRx).coerceAtLeast(0))/seconds)
-    up?.text = "↑ " + speed(((tx-lastTx).coerceAtLeast(0))/seconds)
+    down?.text = coloredSpeed("↓", Color.rgb(76, 217, 100), speed(((rx-lastRx).coerceAtLeast(0))/seconds))
+    up?.text = coloredSpeed("↑", Color.rgb(255, 82, 82), speed(((tx-lastTx).coerceAtLeast(0))/seconds))
    }
    lastRx = rx; lastTx = tx; lastTime = now
    handler.postDelayed(this, 1000)
   }
  }
+ private fun coloredSpeed(arrow: String, color: Int, value: String): SpannableString =
+  SpannableString("$arrow $value").apply {
+   setSpan(ForegroundColorSpan(color), 0, arrow.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+  }
  private fun speed(b: Double): String = when {
   b >= 1048576 -> String.format(Locale.US, "%.1f MB/s", b/1048576)
   b >= 1024 -> String.format(Locale.US, "%.0f KB/s", b/1024)
@@ -58,8 +65,8 @@ class SpeedService : Service() {
    setTextColor(color); textSize = 8f; typeface = Typeface.DEFAULT_BOLD
    setShadowLayer(2f, 1f, 1f, Color.BLACK)
   }
-  down = line(Color.WHITE).apply { text = "↓ --" }
-  up = line(Color.WHITE).apply { text = "↑ --" }
+  down = line(Color.WHITE).apply { text = coloredSpeed("↓", Color.rgb(76, 217, 100), "--") }
+  up = line(Color.WHITE).apply { text = coloredSpeed("↑", Color.rgb(255, 82, 82), "--") }
   overlay = LinearLayout(this).apply {
    orientation = LinearLayout.HORIZONTAL
    setPadding((4*density).toInt(), 0, (4*density).toInt(), 0)
@@ -70,7 +77,7 @@ class SpeedService : Service() {
    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
    PixelFormat.TRANSLUCENT
-  ).apply { gravity = Gravity.TOP or Gravity.START; x = (80*density).toInt(); y = (28*density).toInt() }
+  ).apply { gravity = Gravity.TOP or Gravity.START; x = (40*density).toInt(); y = (28*density).toInt() }
   try { wm.addView(overlay, params); handler.post(tick) } catch (e: Exception) { stopSelf() }
  }
  override fun onDestroy() {
