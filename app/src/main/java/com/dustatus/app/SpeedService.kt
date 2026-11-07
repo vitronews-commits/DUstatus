@@ -55,22 +55,22 @@ class SpeedService : Service() {
   wm = getSystemService(WINDOW_SERVICE) as WindowManager
   val density = resources.displayMetrics.density
   fun line(color: Int) = TextView(this).apply {
-   setTextColor(color); textSize = 10f; typeface = Typeface.DEFAULT_BOLD
+   setTextColor(color); textSize = 8f; typeface = Typeface.DEFAULT_BOLD
    setShadowLayer(2f, 1f, 1f, Color.BLACK)
   }
   down = line(Color.WHITE).apply { text = "↓ --" }
   up = line(Color.WHITE).apply { text = "↑ --" }
   overlay = LinearLayout(this).apply {
-   orientation = LinearLayout.VERTICAL
+   orientation = LinearLayout.HORIZONTAL
    setPadding((4*density).toInt(), 0, (4*density).toInt(), 0)
-   addView(down); addView(up)
+   addView(down); addView(TextView(this@SpeedService).apply { text = "  ·  "; textSize = 8f; setTextColor(Color.WHITE) }); addView(up)
   }
   val params = WindowManager.LayoutParams(
    WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
    PixelFormat.TRANSLUCENT
-  ).apply { gravity = Gravity.TOP or Gravity.START; x = (55*density).toInt(); y = (28*density).toInt() }
+  ).apply { gravity = Gravity.TOP or Gravity.START; x = (80*density).toInt(); y = (28*density).toInt() }
   try { wm.addView(overlay, params); handler.post(tick) } catch (e: Exception) { stopSelf() }
  }
  override fun onDestroy() {
