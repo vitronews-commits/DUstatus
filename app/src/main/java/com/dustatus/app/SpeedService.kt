@@ -63,14 +63,14 @@ class SpeedService : Service() {
   val density = resources.displayMetrics.density
   fun line(color: Int) = TextView(this).apply {
    setTextColor(color); textSize = 8f; typeface = Typeface.DEFAULT_BOLD
-   setShadowLayer(2f, 1f, 1f, Color.BLACK)
+   setShadowLayer(1.4f, 0f, 0f, Color.WHITE)
   }
-  down = line(Color.WHITE).apply { text = coloredSpeed("↓", Color.rgb(76, 217, 100), "--") }
-  up = line(Color.WHITE).apply { text = coloredSpeed("↑", Color.rgb(255, 82, 82), "--") }
+  down = line(Color.rgb(32, 37, 43)).apply { text = coloredSpeed("↓", Color.rgb(76, 217, 100), "--") }
+  up = line(Color.rgb(32, 37, 43)).apply { text = coloredSpeed("↑", Color.rgb(255, 82, 82), "--") }
   overlay = LinearLayout(this).apply {
    orientation = LinearLayout.HORIZONTAL
    setPadding((4*density).toInt(), 0, (4*density).toInt(), 0)
-   addView(down); addView(TextView(this@SpeedService).apply { text = "  ·  "; textSize = 8f; setTextColor(Color.WHITE) }); addView(up)
+   addView(down); addView(TextView(this@SpeedService).apply { text = "  ·  "; textSize = 8f; setTextColor(Color.rgb(32, 37, 43)) }); addView(up)
   }
   val params = WindowManager.LayoutParams(
    WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
