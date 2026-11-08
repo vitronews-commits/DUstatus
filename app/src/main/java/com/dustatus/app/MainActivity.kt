@@ -53,18 +53,28 @@ class MainActivity : Activity() {
   // Match system bars to the dark DUstatus theme. Do not affect other apps.
   window.statusBarColor = Color.rgb(13, 21, 36)
   window.navigationBarColor = Color.rgb(13, 21, 36)
-  if (Build.VERSION.SDK_INT >= 30) {
-   window.insetsController?.setSystemBarsAppearance(
-    0,
-    WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
-     WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
-   )
-  } else {
-   @Suppress("DEPRECATION")
-   window.decorView.systemUiVisibility =
-    window.decorView.systemUiVisibility and
-     (View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR).inv()
-  }
+  // Apply system-bar icon contrast only after the decor view is attached.
+  // PhoneWindow.getInsetsController() may throw on HyperOS before attachment.
+  val decor = window.decorView
+  decor.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+   override fun onViewAttachedToWindow(view: View) {
+    if (Build.VERSION.SDK_INT >= 30) {
+     view.windowInsetsController?.setSystemBarsAppearance(
+      0,
+      WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
+       WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+     )
+    } else {
+     @Suppress("DEPRECATION")
+     run {
+      view.systemUiVisibility = view.systemUiVisibility and
+       (View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR).inv()
+     }
+    }
+    view.removeOnAttachStateChangeListener(this)
+   }
+   override fun onViewDetachedFromWindow(view: View) {}
+  })
   if (Build.VERSION.SDK_INT >= 35) {
    window.decorView.setOnApplyWindowInsetsListener { view, insets ->
     val bars = insets.getInsets(android.view.WindowInsets.Type.statusBars() or android.view.WindowInsets.Type.navigationBars())
