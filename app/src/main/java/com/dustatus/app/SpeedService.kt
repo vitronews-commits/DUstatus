@@ -34,8 +34,8 @@ class SpeedService : Service() {
    val tx = TrafficStats.getTotalTxBytes()
    if (lastTime > 0 && rx >= 0 && tx >= 0) {
     val seconds = (now - lastTime).coerceAtLeast(1) / 1000.0
-    down?.text = coloredSpeed("↓", Color.rgb(76, 217, 100), speed(((rx-lastRx).coerceAtLeast(0))/seconds))
-    up?.text = coloredSpeed("↑", Color.rgb(255, 82, 82), speed(((tx-lastTx).coerceAtLeast(0))/seconds))
+    down?.text = coloredSpeed("↓", Color.rgb(80, 235, 125), speed(((rx-lastRx).coerceAtLeast(0))/seconds))
+    up?.text = coloredSpeed("↑", Color.rgb(255, 105, 105), speed(((tx-lastTx).coerceAtLeast(0))/seconds))
    }
    lastRx = rx; lastTx = tx; lastTime = now
    handler.postDelayed(this, 1000)
@@ -64,18 +64,18 @@ class SpeedService : Service() {
   val density = resources.displayMetrics.density
   fun line(color: Int) = TextView(this).apply {
    setTextColor(color); textSize = 9f; typeface = Typeface.DEFAULT_BOLD
-   setShadowLayer(1.4f, 0f, 0f, Color.WHITE)
+   includeFontPadding = false
   }
-  down = line(Color.rgb(32, 37, 43)).apply { text = coloredSpeed("↓", Color.rgb(76, 217, 100), "--") }
-  up = line(Color.rgb(32, 37, 43)).apply { text = coloredSpeed("↑", Color.rgb(255, 82, 82), "--") }
+  down = line(Color.WHITE).apply { text = coloredSpeed("↓", Color.rgb(76, 217, 100), "--") }
+  up = line(Color.WHITE).apply { text = coloredSpeed("↑", Color.rgb(255, 82, 82), "--") }
   overlay = LinearLayout(this).apply {
    orientation = LinearLayout.HORIZONTAL
    setPadding((3*density).toInt(), (1*density).toInt(), (3*density).toInt(), (1*density).toInt())
    background = GradientDrawable().apply {
-    setColor(Color.argb(51, 255, 255, 255)) // 80% transparent (20% opacity)
+    setColor(Color.argb(217, 20, 25, 35)) // 85% opaque charcoal, readable on light/dark backgrounds
     cornerRadius = 1000f * density // fully rounded pill ends
    }
-   addView(down); addView(TextView(this@SpeedService).apply { text = "  ·  "; textSize = 9f; setTextColor(Color.rgb(32, 37, 43)) }); addView(up)
+   addView(down); addView(TextView(this@SpeedService).apply { text = "  ·  "; textSize = 9f; setTextColor(Color.rgb(200, 208, 218)); includeFontPadding = false }); addView(up)
   }
   val params = WindowManager.LayoutParams(
    WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
