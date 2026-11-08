@@ -60,7 +60,7 @@ class MainActivity : Activity() {
    }
   }
   val prefs = getSharedPreferences("settings", MODE_PRIVATE)
-  val scroll = ScrollView(this).apply { setBackgroundColor(Color.rgb(13, 21, 36)); fillViewport = true }
+  val scroll = ScrollView(this).apply { setBackgroundColor(Color.rgb(13, 21, 36)); isFillViewport = true }
   val root = column().apply { setPadding(dp(20), dp(26), dp(20), dp(30)) }
   scroll.addView(root)
   root.addView(text("DUstatus", 30f, ink, true))
@@ -72,7 +72,7 @@ class MainActivity : Activity() {
   preview.addView(text("LIVE INDICATOR", 11f, muted, true))
   addSpace(preview, 14)
   val capsule = text("↓  72 KB/s    ·    ↑  2 KB/s", 13f, Color.WHITE, true).apply {
-   background = shape(Color.rgb(217, 20, 25, 35), 100)
+   background = shape(Color.argb(217, 20, 25, 35), 100)
    setPadding(dp(12), dp(7), dp(12), dp(7))
   }
   preview.addView(capsule, LinearLayout.LayoutParams(-2, -2))
