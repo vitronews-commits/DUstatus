@@ -2,6 +2,9 @@ package com.dustatus.app
 
 import android.app.*
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Typeface
@@ -28,6 +31,40 @@ class SpeedService : Service() {
  private var lastRx = 0L
  private var lastTx = 0L
  private var lastTime = 0L
+ private var polling = false
+ private var receiverRegistered = false
+ private var lastDownText = "--"
+ private var lastUpText = "--"
+ private val screenReceiver = object : BroadcastReceiver() {
+  override fun onReceive(context: Context?, intent: Intent?) {
+   when (intent?.action) {
+    Intent.ACTION_SCREEN_OFF -> pauseSampling()
+    Intent.ACTION_SCREEN_ON -> resumeSampling()
+   }
+  }
+ }
+ private fun pauseSampling() {
+  polling = false
+  handler.removeCallbacks(tick)
+  lastTime = 0L
+ }
+ private fun resumeSampling() {
+  if (polling || overlay == null) return
+  polling = true
+  lastTime = 0L
+  handler.removeCallbacks(tick)
+  handler.post(tick)
+ }
+ private fun updateValue(view: TextView?, arrow: String, color: Int, value: String, download: Boolean) {
+  if (download) {
+   if (lastDownText == value) return
+   lastDownText = value
+  } else {
+   if (lastUpText == value) return
+   lastUpText = value
+  }
+  view?.text = coloredSpeed(arrow, color, value)
+ }
  private val tick = object : Runnable {
   override fun run() {
    val now = SystemClock.elapsedRealtime()
@@ -36,12 +73,12 @@ class SpeedService : Service() {
    val elapsed = now - lastTime
    if (lastTime > 0 && elapsed in 500L..3000L && rx >= lastRx && tx >= lastTx && rx >= 0 && tx >= 0) {
     val seconds = elapsed / 1000.0
-    down?.text = coloredSpeed("↓", Color.rgb(80, 235, 125), speed(((rx-lastRx).coerceAtLeast(0))/seconds))
-    up?.text = coloredSpeed("↑", Color.rgb(255, 105, 105), speed(((tx-lastTx).coerceAtLeast(0))/seconds))
+    updateValue(down, "↓", Color.rgb(80, 235, 125), speed(((rx-lastRx).coerceAtLeast(0))/seconds), true)
+    updateValue(up, "↑", Color.rgb(255, 105, 105), speed(((tx-lastTx).coerceAtLeast(0))/seconds), false)
    }
-   else if (lastTime > 0) { down?.text = coloredSpeed("↓", Color.rgb(80, 235, 125), "--"); up?.text = coloredSpeed("↑", Color.rgb(255, 105, 105), "--") }
+   else if (lastTime > 0) { updateValue(down, "↓", Color.rgb(80, 235, 125), "--", true); updateValue(up, "↑", Color.rgb(255, 105, 105), "--", false) }
    lastRx = rx; lastTx = tx; lastTime = now
-   handler.postDelayed(this, 1000)
+   if (polling) handler.postDelayed(this, 1000)
   }
  }
  private fun coloredSpeed(arrow: String, color: Int, value: String): SpannableString =
@@ -96,10 +133,21 @@ class SpeedService : Service() {
    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
    PixelFormat.TRANSLUCENT
   ).apply { gravity = Gravity.TOP or Gravity.START; x = (40*density).toInt(); y = (28*density).toInt() }
-  try { wm.addView(overlay, params); getSharedPreferences("settings", MODE_PRIVATE).edit().putBoolean("running", true).apply(); handler.post(tick) } catch (e: Exception) { getSharedPreferences("settings", MODE_PRIVATE).edit().putBoolean("running", false).apply(); stopSelf() }
+  try {
+   wm.addView(overlay, params)
+   registerReceiver(screenReceiver, IntentFilter().apply { addAction(Intent.ACTION_SCREEN_ON); addAction(Intent.ACTION_SCREEN_OFF) })
+   receiverRegistered = true
+   getSharedPreferences("settings", MODE_PRIVATE).edit().putBoolean("running", true).apply()
+   val power = getSystemService(POWER_SERVICE) as PowerManager
+   if (power.isInteractive) resumeSampling()
+  } catch (e: Exception) {
+   getSharedPreferences("settings", MODE_PRIVATE).edit().putBoolean("running", false).apply()
+   stopSelf()
+  }
  }
  override fun onDestroy() {
-  handler.removeCallbacks(tick)
+  pauseSampling()
+  if (receiverRegistered) { unregisterReceiver(screenReceiver); receiverRegistered = false }
   overlay?.let { try { wm.removeView(it) } catch (_: Exception) {} }
   overlay = null
   super.onDestroy()
