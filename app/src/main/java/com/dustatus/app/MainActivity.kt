@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
+import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.CheckBox
@@ -49,9 +50,21 @@ class MainActivity : Activity() {
  }
  override fun onCreate(savedInstanceState: Bundle?) {
   super.onCreate(savedInstanceState)
+  // Match system bars to the dark DUstatus theme. Do not affect other apps.
   window.statusBarColor = Color.rgb(13, 21, 36)
   window.navigationBarColor = Color.rgb(13, 21, 36)
-  window.decorView.systemUiVisibility = 0
+  if (Build.VERSION.SDK_INT >= 30) {
+   window.insetsController?.setSystemBarsAppearance(
+    0,
+    WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
+     WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+   )
+  } else {
+   @Suppress("DEPRECATION")
+   window.decorView.systemUiVisibility =
+    window.decorView.systemUiVisibility and
+     (View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR).inv()
+  }
   if (Build.VERSION.SDK_INT >= 35) {
    window.decorView.setOnApplyWindowInsetsListener { view, insets ->
     val bars = insets.getInsets(android.view.WindowInsets.Type.statusBars() or android.view.WindowInsets.Type.navigationBars())
