@@ -116,8 +116,8 @@ class SpeedService : Service() {
    setTextColor(color); textSize = 9f; typeface = Typeface.DEFAULT_BOLD
    includeFontPadding = false
   }
-  down = line(Color.WHITE).apply { text = coloredSpeed("↓", Color.rgb(76, 217, 100), "--"); gravity = Gravity.CENTER; isSingleLine = true }
-  up = line(Color.WHITE).apply { text = coloredSpeed("↑", Color.rgb(255, 82, 82), "--"); gravity = Gravity.CENTER; isSingleLine = true }
+  down = line(Color.WHITE).apply { text = coloredSpeed("↓", Color.rgb(76, 217, 100), "--") }
+  up = line(Color.WHITE).apply { text = coloredSpeed("↑", Color.rgb(255, 82, 82), "--") }
   overlay = LinearLayout(this).apply {
    orientation = LinearLayout.HORIZONTAL
    setPadding((3*density).toInt(), (1*density).toInt(), (3*density).toInt(), (1*density).toInt())
@@ -125,7 +125,7 @@ class SpeedService : Service() {
     setColor(Color.argb(217, 20, 25, 35)) // 85% opaque charcoal, readable on light/dark backgrounds
     cornerRadius = 1000f * density // fully rounded pill ends
    }
-   // Fixed-width fields prevent the capsule from resizing as values change.\n   val fieldWidth = (78 * density + 0.5f).toInt()\n   addView(down, LinearLayout.LayoutParams(fieldWidth, LinearLayout.LayoutParams.WRAP_CONTENT))\n   addView(TextView(this@SpeedService).apply { text = "·"; textSize = 9f; setTextColor(Color.rgb(200, 208, 218)); includeFontPadding = false; gravity = Gravity.CENTER }, LinearLayout.LayoutParams((7 * density + 0.5f).toInt(), LinearLayout.LayoutParams.WRAP_CONTENT))\n   addView(up, LinearLayout.LayoutParams(fieldWidth, LinearLayout.LayoutParams.WRAP_CONTENT))
+   addView(down); addView(TextView(this@SpeedService).apply { text = "  ·  "; textSize = 9f; setTextColor(Color.rgb(200, 208, 218)); includeFontPadding = false }); addView(up)
   }
   val params = WindowManager.LayoutParams(
    WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
