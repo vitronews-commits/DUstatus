@@ -126,8 +126,8 @@ class SpeedService : Service() {
     cornerRadius = 1000f * density // fully rounded pill ends
    }
    // Fixed dp widths keep the capsule stationary as speed values change.
-   val fieldWidth = (88f * density + 0.5f).toInt()
-   val separatorWidth = (8f * density + 0.5f).toInt()
+   val fieldWidth = (56f * density + 0.5f).toInt()
+   val separatorWidth = (7f * density + 0.5f).toInt()
    addView(down, LinearLayout.LayoutParams(fieldWidth, LinearLayout.LayoutParams.WRAP_CONTENT))
    addView(TextView(this@SpeedService).apply {
     text = "·"; textSize = 9f; setTextColor(Color.rgb(200, 208, 218))
