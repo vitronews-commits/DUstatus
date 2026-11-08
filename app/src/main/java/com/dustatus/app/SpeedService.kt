@@ -34,7 +34,7 @@ class SpeedService : Service() {
    val rx = TrafficStats.getTotalRxBytes()
    val tx = TrafficStats.getTotalTxBytes()
    val elapsed = now - lastTime
-   if (lastTime > 0 && elapsed in 500..3000 && rx >= lastRx && tx >= lastTx && rx >= 0 && tx >= 0) {
+   if (lastTime > 0 && elapsed in 500L..3000L && rx >= lastRx && tx >= lastTx && rx >= 0 && tx >= 0) {
     val seconds = elapsed / 1000.0
     down?.text = coloredSpeed("↓", Color.rgb(80, 235, 125), speed(((rx-lastRx).coerceAtLeast(0))/seconds))
     up?.text = coloredSpeed("↑", Color.rgb(255, 105, 105), speed(((tx-lastTx).coerceAtLeast(0))/seconds))
