@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.net.TrafficStats
 import android.os.*
 import android.provider.Settings
@@ -62,15 +63,19 @@ class SpeedService : Service() {
   wm = getSystemService(WINDOW_SERVICE) as WindowManager
   val density = resources.displayMetrics.density
   fun line(color: Int) = TextView(this).apply {
-   setTextColor(color); textSize = 8f; typeface = Typeface.DEFAULT_BOLD
+   setTextColor(color); textSize = 9f; typeface = Typeface.DEFAULT_BOLD
    setShadowLayer(1.4f, 0f, 0f, Color.WHITE)
   }
   down = line(Color.rgb(32, 37, 43)).apply { text = coloredSpeed("↓", Color.rgb(76, 217, 100), "--") }
   up = line(Color.rgb(32, 37, 43)).apply { text = coloredSpeed("↑", Color.rgb(255, 82, 82), "--") }
   overlay = LinearLayout(this).apply {
    orientation = LinearLayout.HORIZONTAL
-   setPadding((4*density).toInt(), 0, (4*density).toInt(), 0)
-   addView(down); addView(TextView(this@SpeedService).apply { text = "  ·  "; textSize = 8f; setTextColor(Color.rgb(32, 37, 43)) }); addView(up)
+   setPadding((3*density).toInt(), (3*density).toInt(), (3*density).toInt(), (3*density).toInt())
+   background = GradientDrawable().apply {
+    setColor(Color.argb(51, 255, 255, 255)) // 80% transparent (20% opacity)
+    cornerRadius = 6f * density
+   }
+   addView(down); addView(TextView(this@SpeedService).apply { text = "  ·  "; textSize = 9f; setTextColor(Color.rgb(32, 37, 43)) }); addView(up)
   }
   val params = WindowManager.LayoutParams(
    WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
