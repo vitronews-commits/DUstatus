@@ -70,7 +70,7 @@ class SpeedService : Service() {
   up = line(Color.rgb(32, 37, 43)).apply { text = coloredSpeed("↑", Color.rgb(255, 82, 82), "--") }
   overlay = LinearLayout(this).apply {
    orientation = LinearLayout.HORIZONTAL
-   setPadding((3*density).toInt(), (3*density).toInt(), (3*density).toInt(), (3*density).toInt())
+   setPadding((3*density).toInt(), (1*density).toInt(), (3*density).toInt(), (1*density).toInt())
    background = GradientDrawable().apply {
     setColor(Color.argb(51, 255, 255, 255)) // 80% transparent (20% opacity)
     cornerRadius = 1000f * density // fully rounded pill ends
