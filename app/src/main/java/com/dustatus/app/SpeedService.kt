@@ -19,6 +19,7 @@ import android.text.style.ForegroundColorSpan
 import java.util.Locale
 
 class SpeedService : Service() {
+ companion object { const val ACTION_STOP = "com.dustatus.app.STOP" }
  private val handler = Handler(Looper.getMainLooper())
  private lateinit var wm: WindowManager
  private var overlay: LinearLayout? = null
@@ -32,11 +33,13 @@ class SpeedService : Service() {
    val now = SystemClock.elapsedRealtime()
    val rx = TrafficStats.getTotalRxBytes()
    val tx = TrafficStats.getTotalTxBytes()
-   if (lastTime > 0 && rx >= 0 && tx >= 0) {
-    val seconds = (now - lastTime).coerceAtLeast(1) / 1000.0
+   val elapsed = now - lastTime
+   if (lastTime > 0 && elapsed in 500..3000 && rx >= lastRx && tx >= lastTx && rx >= 0 && tx >= 0) {
+    val seconds = elapsed / 1000.0
     down?.text = coloredSpeed("↓", Color.rgb(80, 235, 125), speed(((rx-lastRx).coerceAtLeast(0))/seconds))
     up?.text = coloredSpeed("↑", Color.rgb(255, 105, 105), speed(((tx-lastTx).coerceAtLeast(0))/seconds))
    }
+   else if (lastTime > 0) { down?.text = coloredSpeed("↓", Color.rgb(80, 235, 125), "--"); up?.text = coloredSpeed("↑", Color.rgb(255, 105, 105), "--") }
    lastRx = rx; lastTx = tx; lastTime = now
    handler.postDelayed(this, 1000)
   }
@@ -51,15 +54,25 @@ class SpeedService : Service() {
   else -> String.format(Locale.US, "%.0f B/s", b)
  }
  override fun onBind(intent: Intent?) = null
+ override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+  if (intent?.action == ACTION_STOP) {
+   getSharedPreferences("settings", MODE_PRIVATE).edit().putBoolean("running", false).apply()
+   stopSelf()
+   return START_NOT_STICKY
+  }
+  return START_STICKY
+ }
  override fun onCreate() {
   super.onCreate()
   val channel = "speed"
   val nm = getSystemService(NotificationManager::class.java)
   nm.createNotificationChannel(NotificationChannel(channel, "Network speed", NotificationManager.IMPORTANCE_LOW))
   val pending = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
-  val notification = Notification.Builder(this, channel).setContentTitle("DUstatus active").setContentText("Network speed indicator running").setSmallIcon(android.R.drawable.stat_sys_download).setContentIntent(pending).build()
+  val stopIntent = Intent(this, SpeedService::class.java).apply { action = ACTION_STOP }
+  val stopPending = PendingIntent.getService(this, 1, stopIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+  val notification = Notification.Builder(this, channel).addAction(android.R.drawable.ic_media_pause, "Stop", stopPending).setContentTitle("DUstatus active").setContentText("Network speed indicator running").setSmallIcon(android.R.drawable.stat_sys_download).setContentIntent(pending).build()
   startForeground(1, notification)
-  if (!Settings.canDrawOverlays(this)) { stopSelf(); return }
+  if (!Settings.canDrawOverlays(this)) { getSharedPreferences("settings", MODE_PRIVATE).edit().putBoolean("running", false).apply(); stopSelf(); return }
   wm = getSystemService(WINDOW_SERVICE) as WindowManager
   val density = resources.displayMetrics.density
   fun line(color: Int) = TextView(this).apply {
@@ -83,7 +96,7 @@ class SpeedService : Service() {
    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
    PixelFormat.TRANSLUCENT
   ).apply { gravity = Gravity.TOP or Gravity.START; x = (40*density).toInt(); y = (28*density).toInt() }
-  try { wm.addView(overlay, params); handler.post(tick) } catch (e: Exception) { stopSelf() }
+  try { wm.addView(overlay, params); getSharedPreferences("settings", MODE_PRIVATE).edit().putBoolean("running", true).apply(); handler.post(tick) } catch (e: Exception) { getSharedPreferences("settings", MODE_PRIVATE).edit().putBoolean("running", false).apply(); stopSelf() }
  }
  override fun onDestroy() {
   handler.removeCallbacks(tick)
