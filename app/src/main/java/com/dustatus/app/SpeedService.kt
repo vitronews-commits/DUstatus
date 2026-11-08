@@ -73,7 +73,7 @@ class SpeedService : Service() {
    setPadding((3*density).toInt(), (3*density).toInt(), (3*density).toInt(), (3*density).toInt())
    background = GradientDrawable().apply {
     setColor(Color.argb(51, 255, 255, 255)) // 80% transparent (20% opacity)
-    cornerRadius = 6f * density
+    cornerRadius = 1000f * density // fully rounded pill ends
    }
    addView(down); addView(TextView(this@SpeedService).apply { text = "  ·  "; textSize = 9f; setTextColor(Color.rgb(32, 37, 43)) }); addView(up)
   }
