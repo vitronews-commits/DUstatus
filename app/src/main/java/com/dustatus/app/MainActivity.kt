@@ -17,6 +17,7 @@ import android.widget.Button
 import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.SeekBar
 import android.widget.TextView
 
 class MainActivity : Activity() {
@@ -94,15 +95,62 @@ class MainActivity : Activity() {
   val preview = column()
   preview.addView(text("LIVE INDICATOR", 11f, muted, true))
   addSpace(preview, 14)
-  val capsule = text("↓  72 KB/s    ·    ↑  2 KB/s", 13f, Color.WHITE, true).apply {
-   background = shape(Color.argb(217, 20, 25, 35), 100)
-   setPadding(dp(12), dp(7), dp(12), dp(7))
+  val indicatorPreview = IndicatorView(this).apply {
+   applySettings(prefs)
+   setSpeeds("2 KB/s", "358 B/s")
   }
-  preview.addView(capsule, LinearLayout.LayoutParams(-2, -2))
+  preview.addView(indicatorPreview, LinearLayout.LayoutParams(-2, -2))
   addSpace(preview, 10)
-  preview.addView(text("Preview only · Actual indicator stays below the clock", 12f, muted))
+  preview.addView(text("Same rendering as the floating indicator · Example speeds", 12f, muted))
   card(root, preview)
   addSpace(root, 16)
+
+  // Persist settings immediately; SpeedService listens and updates the overlay live.
+  val controls = column()
+  controls.addView(text("INDICATOR LAYOUT", 11f, muted, true))
+  addSpace(controls, 8)
+  fun control(title: String, key: String, min: Int, max: Int, initial: Int) {
+   val label = text("", 13f, ink)
+   val seek = SeekBar(this).apply {
+    this.max = max - min
+    progress = (prefs.getInt(key, initial) - min).coerceIn(0, max - min)
+   }
+   fun refresh(value: Int) { label.text = "$title: ${value}dp" }
+   refresh(min + seek.progress)
+   seek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+    override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
+     if (!fromUser) return
+     val value = min + progress
+     refresh(value)
+     prefs.edit().putInt(key, value).apply()
+     indicatorPreview.applySettings(prefs)
+    }
+    override fun onStartTrackingTouch(bar: SeekBar?) {}
+    override fun onStopTrackingTouch(bar: SeekBar?) {}
+   })
+   controls.addView(label)
+   controls.addView(seek, LinearLayout.LayoutParams(-1, dp(40)))
+  }
+  control("Left position", "position_x", 0, 120, 7)
+  control("Top position", "position_y", 0, 120, 28)
+  control("Horizontal padding", "padding_x", 0, 12, 3)
+  control("Vertical padding", "padding_y", 0, 8, 1)
+  control("Width per speed", "field_width", 44, 90, 52)
+  val reset = Button(this).apply {
+   text = "Reset indicator layout"; isAllCaps = false
+   setTextColor(ink); background = shape(panel, 14)
+   setOnClickListener {
+    prefs.edit().putInt("position_x", 7).putInt("position_y", 28)
+     .putInt("padding_x", 3).putInt("padding_y", 1)
+     .putInt("field_width", 52).apply()
+    indicatorPreview.applySettings(prefs)
+    // Recreate sliders to reflect restored settings.
+    recreate()
+   }
+  }
+  controls.addView(reset, LinearLayout.LayoutParams(-1, dp(48)))
+  card(root, controls)
+  addSpace(root, 18)
 
   val stateCard = column()
   stateCard.addView(text("SERVICE STATUS", 11f, muted, true))
