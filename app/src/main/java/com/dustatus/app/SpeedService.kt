@@ -13,6 +13,8 @@ import android.net.TrafficStats
 import android.os.*
 import android.provider.Settings
 import android.view.Gravity
+import android.view.MotionEvent
+import android.view.View
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -29,16 +31,65 @@ class SpeedService : Service() {
  private lateinit var overlayParams: WindowManager.LayoutParams
  private val prefs by lazy { getSharedPreferences("settings", MODE_PRIVATE) }
  private val settingsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-  if (key in setOf("position_x", "position_y", "padding_x", "padding_y", "field_width")) {
-   handler.post { overlay?.applySettings(prefs); updateOverlayPosition() }
+  if (key in setOf("position_x", "position_y", "padding_x", "padding_y", "field_width", "drag_unlocked")) {
+   handler.post { overlay?.applySettings(prefs); updateOverlayPosition(); updateDragMode() }
   }
  }
  private fun updateOverlayPosition() {
   if (!::overlayParams.isInitialized) return
   val d = resources.displayMetrics.density
-  overlayParams.x = (prefs.getInt("position_x", 7).coerceIn(0, 120) * d + 0.5f).toInt()
-  overlayParams.y = (prefs.getInt("position_y", 28).coerceIn(0, 120) * d + 0.5f).toInt()
+  val bounds = displayBounds()
+  val maxX = (bounds.first - (overlay?.width ?: 0)).coerceAtLeast(0)
+  val maxY = (bounds.second - (overlay?.height ?: 0)).coerceAtLeast(0)
+  overlayParams.x = (prefs.getInt("position_x", 7) * d + 0.5f).toInt().coerceIn(0, maxX)
+  overlayParams.y = (prefs.getInt("position_y", 28) * d + 0.5f).toInt().coerceIn(0, maxY)
   overlay?.let { try { wm.updateViewLayout(it, overlayParams) } catch (_: Exception) {} }
+ }
+ private fun displayBounds(): Pair<Int, Int> {
+  val metrics = android.util.DisplayMetrics()
+  @Suppress("DEPRECATION")
+  wm.defaultDisplay.getRealMetrics(metrics)
+  return metrics.widthPixels to metrics.heightPixels
+ }
+ private fun updateDragMode() {
+  if (!::overlayParams.isInitialized) return
+  val unlocked = prefs.getBoolean("drag_unlocked", false)
+  val base = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+  overlayParams.flags = base or (if (unlocked) 0 else WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+  overlay?.let { try { wm.updateViewLayout(it, overlayParams) } catch (_: Exception) {} }
+ }
+ private var dragStartX = 0f
+ private var dragStartY = 0f
+ private var dragWindowX = 0
+ private var dragWindowY = 0
+ private fun installDragHandler(view: IndicatorView) {
+  view.setOnTouchListener { _, event ->
+   if (!prefs.getBoolean("drag_unlocked", false)) return@setOnTouchListener false
+   when (event.actionMasked) {
+    MotionEvent.ACTION_DOWN -> {
+     dragStartX = event.rawX
+     dragStartY = event.rawY
+     dragWindowX = overlayParams.x
+     dragWindowY = overlayParams.y
+     true
+    }
+    MotionEvent.ACTION_MOVE -> {
+     val (screenW, screenH) = displayBounds()
+     overlayParams.x = (dragWindowX + (event.rawX - dragStartX).toInt()).coerceIn(0, (screenW - view.width).coerceAtLeast(0))
+     overlayParams.y = (dragWindowY + (event.rawY - dragStartY).toInt()).coerceIn(0, (screenH - view.height).coerceAtLeast(0))
+     try { wm.updateViewLayout(view, overlayParams) } catch (_: Exception) {}
+     true
+    }
+    MotionEvent.ACTION_UP -> {
+     val d = resources.displayMetrics.density
+     prefs.edit().putInt("position_x", (overlayParams.x / d + 0.5f).toInt())
+      .putInt("position_y", (overlayParams.y / d + 0.5f).toInt()).apply()
+     true
+    }
+    MotionEvent.ACTION_CANCEL -> true
+    else -> false
+   }
+  }
  }
  private var lastRx = 0L
  private var lastTx = 0L
@@ -123,7 +174,7 @@ class SpeedService : Service() {
   startForeground(1, notification)
   if (!Settings.canDrawOverlays(this)) { getSharedPreferences("settings", MODE_PRIVATE).edit().putBoolean("running", false).apply(); stopSelf(); return }
   wm = getSystemService(WINDOW_SERVICE) as WindowManager
-  overlay = IndicatorView(this).apply { applySettings(prefs) }
+  overlay = IndicatorView(this).apply { applySettings(prefs); installDragHandler(this) }
   overlayParams = WindowManager.LayoutParams(
    WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
@@ -132,6 +183,7 @@ class SpeedService : Service() {
   ).apply { gravity = Gravity.TOP or Gravity.START; x = (prefs.getInt("position_x", 7) * resources.displayMetrics.density + 0.5f).toInt(); y = (prefs.getInt("position_y", 28) * resources.displayMetrics.density + 0.5f).toInt() }
   try {
    wm.addView(overlay, overlayParams)
+   updateDragMode()
    prefs.registerOnSharedPreferenceChangeListener(settingsListener)
    registerReceiver(screenReceiver, IntentFilter().apply { addAction(Intent.ACTION_SCREEN_ON); addAction(Intent.ACTION_SCREEN_OFF) })
    receiverRegistered = true
