@@ -126,8 +126,8 @@ class SpeedService : Service() {
     cornerRadius = 1000f * density // fully rounded pill ends
    }
    // Fixed dp widths keep the capsule stationary as speed values change.
-   val fieldWidth = (56f * density + 0.5f).toInt()
-   val separatorWidth = (7f * density + 0.5f).toInt()
+   val fieldWidth = (52f * density + 0.5f).toInt()
+   val separatorWidth = (5f * density + 0.5f).toInt()
    addView(down, LinearLayout.LayoutParams(fieldWidth, LinearLayout.LayoutParams.WRAP_CONTENT))
    addView(TextView(this@SpeedService).apply {
     text = "·"; textSize = 9f; setTextColor(Color.rgb(200, 208, 218))
@@ -140,7 +140,7 @@ class SpeedService : Service() {
    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
    PixelFormat.TRANSLUCENT
-  ).apply { gravity = Gravity.TOP or Gravity.START; x = (40*density).toInt(); y = (28*density).toInt() }
+  ).apply { gravity = Gravity.TOP or Gravity.START; x = 0; y = (28*density).toInt() }
   try {
    wm.addView(overlay, params)
    registerReceiver(screenReceiver, IntentFilter().apply { addAction(Intent.ACTION_SCREEN_ON); addAction(Intent.ACTION_SCREEN_OFF) })
