@@ -3,6 +3,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: dustatus-debug-release
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,3 +30,13 @@ jobs:
         with:
           name: DUstatus-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+      - name: Publish downloadable APK to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          cp "$APK" DUstatus-debug.apk
+          if ! gh release view latest-debug >/dev/null 2>&1; then
+            gh release create latest-debug --target "$GITHUB_SHA" --title "DUstatus - Latest Debug APK" --notes "Development build. Updated automatically after successful builds." --prerelease
+          fi
+          gh release upload latest-debug DUstatus-debug.apk --clobber
