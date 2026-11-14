@@ -25,9 +25,21 @@ class SpeedService : Service() {
  companion object { const val ACTION_STOP = "com.dustatus.app.STOP" }
  private val handler = Handler(Looper.getMainLooper())
  private lateinit var wm: WindowManager
- private var overlay: LinearLayout? = null
- private var down: TextView? = null
- private var up: TextView? = null
+ private var overlay: IndicatorView? = null
+ private lateinit var overlayParams: WindowManager.LayoutParams
+ private val prefs by lazy { getSharedPreferences("settings", MODE_PRIVATE) }
+ private val settingsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+  if (key in setOf("position_x", "position_y", "padding_x", "padding_y", "field_width")) {
+   handler.post { overlay?.applySettings(prefs); updateOverlayPosition() }
+  }
+ }
+ private fun updateOverlayPosition() {
+  if (!::overlayParams.isInitialized) return
+  val d = resources.displayMetrics.density
+  overlayParams.x = (prefs.getInt("position_x", 7).coerceIn(0, 120) * d + 0.5f).toInt()
+  overlayParams.y = (prefs.getInt("position_y", 28).coerceIn(0, 120) * d + 0.5f).toInt()
+  overlay?.let { try { wm.updateViewLayout(it, overlayParams) } catch (_: Exception) {} }
+ }
  private var lastRx = 0L
  private var lastTx = 0L
  private var lastTime = 0L
@@ -63,7 +75,7 @@ class SpeedService : Service() {
    if (lastUpText == value) return
    lastUpText = value
   }
-  view?.text = coloredSpeed(arrow, color, value)
+  overlay?.setSpeeds(lastDownText, lastUpText)
  }
  private val tick = object : Runnable {
   override fun run() {
@@ -111,38 +123,16 @@ class SpeedService : Service() {
   startForeground(1, notification)
   if (!Settings.canDrawOverlays(this)) { getSharedPreferences("settings", MODE_PRIVATE).edit().putBoolean("running", false).apply(); stopSelf(); return }
   wm = getSystemService(WINDOW_SERVICE) as WindowManager
-  val density = resources.displayMetrics.density
-  fun line(color: Int) = TextView(this).apply {
-   setTextColor(color); textSize = 9f; typeface = Typeface.DEFAULT_BOLD
-   includeFontPadding = false
-  }
-  down = line(Color.WHITE).apply { text = coloredSpeed("↓", Color.rgb(76, 217, 100), "--"); gravity = Gravity.CENTER; maxLines = 1 }
-  up = line(Color.WHITE).apply { text = coloredSpeed("↑", Color.rgb(255, 82, 82), "--"); gravity = Gravity.CENTER; maxLines = 1 }
-  overlay = LinearLayout(this).apply {
-   orientation = LinearLayout.HORIZONTAL
-   setPadding((3*density).toInt(), (1*density).toInt(), (3*density).toInt(), (1*density).toInt())
-   background = GradientDrawable().apply {
-    setColor(Color.argb(217, 20, 25, 35)) // 85% opaque charcoal, readable on light/dark backgrounds
-    cornerRadius = 1000f * density // fully rounded pill ends
-   }
-   // Fixed dp widths keep the capsule stationary as speed values change.
-   val fieldWidth = (52f * density + 0.5f).toInt()
-   val separatorWidth = (5f * density + 0.5f).toInt()
-   addView(down, LinearLayout.LayoutParams(fieldWidth, LinearLayout.LayoutParams.WRAP_CONTENT))
-   addView(TextView(this@SpeedService).apply {
-    text = "·"; textSize = 9f; setTextColor(Color.rgb(200, 208, 218))
-    includeFontPadding = false; gravity = Gravity.CENTER
-   }, LinearLayout.LayoutParams(separatorWidth, LinearLayout.LayoutParams.WRAP_CONTENT))
-   addView(up, LinearLayout.LayoutParams(fieldWidth, LinearLayout.LayoutParams.WRAP_CONTENT))
-  }
-  val params = WindowManager.LayoutParams(
+  overlay = IndicatorView(this).apply { applySettings(prefs) }
+  overlayParams = WindowManager.LayoutParams(
    WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
    PixelFormat.TRANSLUCENT
-  ).apply { gravity = Gravity.TOP or Gravity.START; x = (7f * density + 0.5f).toInt(); y = (28*density).toInt() }
+  ).apply { gravity = Gravity.TOP or Gravity.START; x = (prefs.getInt("position_x", 7) * resources.displayMetrics.density + 0.5f).toInt(); y = (prefs.getInt("position_y", 28) * resources.displayMetrics.density + 0.5f).toInt() }
   try {
-   wm.addView(overlay, params)
+   wm.addView(overlay, overlayParams)
+   prefs.registerOnSharedPreferenceChangeListener(settingsListener)
    registerReceiver(screenReceiver, IntentFilter().apply { addAction(Intent.ACTION_SCREEN_ON); addAction(Intent.ACTION_SCREEN_OFF) })
    receiverRegistered = true
    getSharedPreferences("settings", MODE_PRIVATE).edit().putBoolean("running", true).apply()
@@ -155,6 +145,7 @@ class SpeedService : Service() {
  }
  override fun onDestroy() {
   pauseSampling()
+  prefs.unregisterOnSharedPreferenceChangeListener(settingsListener)
   if (receiverRegistered) { unregisterReceiver(screenReceiver); receiverRegistered = false }
   overlay?.let { try { wm.removeView(it) } catch (_: Exception) {} }
   overlay = null
