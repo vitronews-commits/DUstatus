@@ -140,7 +140,7 @@ class SpeedService : Service() {
    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
    PixelFormat.TRANSLUCENT
-  ).apply { gravity = Gravity.TOP or Gravity.START; x = 0; y = (28*density).toInt() }
+  ).apply { gravity = Gravity.TOP or Gravity.START; x = (7f * density + 0.5f).toInt(); y = (28*density).toInt() }
   try {
    wm.addView(overlay, params)
    registerReceiver(screenReceiver, IntentFilter().apply { addAction(Intent.ACTION_SCREEN_ON); addAction(Intent.ACTION_SCREEN_OFF) })
