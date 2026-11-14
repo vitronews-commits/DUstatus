@@ -67,7 +67,7 @@ class SpeedService : Service() {
   handler.removeCallbacks(tick)
   handler.post(tick)
  }
- private fun updateValue(view: TextView?, arrow: String, color: Int, value: String, download: Boolean) {
+ private fun updateValue(value: String, download: Boolean) {
   if (download) {
    if (lastDownText == value) return
    lastDownText = value
@@ -85,10 +85,10 @@ class SpeedService : Service() {
    val elapsed = now - lastTime
    if (lastTime > 0 && elapsed in 500L..3000L && rx >= lastRx && tx >= lastTx && rx >= 0 && tx >= 0) {
     val seconds = elapsed / 1000.0
-    updateValue(down, "↓", Color.rgb(80, 235, 125), speed(((rx-lastRx).coerceAtLeast(0))/seconds), true)
-    updateValue(up, "↑", Color.rgb(255, 105, 105), speed(((tx-lastTx).coerceAtLeast(0))/seconds), false)
+    updateValue(speed(((rx-lastRx).coerceAtLeast(0))/seconds), true)
+    updateValue(speed(((tx-lastTx).coerceAtLeast(0))/seconds), false)
    }
-   else if (lastTime > 0) { updateValue(down, "↓", Color.rgb(80, 235, 125), "--", true); updateValue(up, "↑", Color.rgb(255, 105, 105), "--", false) }
+   else if (lastTime > 0) { updateValue("--", true); updateValue("--", false) }
    lastRx = rx; lastTx = tx; lastTime = now
    if (polling) handler.postDelayed(this, 1000)
   }
