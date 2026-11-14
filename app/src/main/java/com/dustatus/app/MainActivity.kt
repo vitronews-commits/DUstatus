@@ -131,8 +131,29 @@ class MainActivity : Activity() {
    controls.addView(label)
    controls.addView(seek, LinearLayout.LayoutParams(-1, dp(40)))
   }
-  control("Left position", "position_x", 0, 120, 7)
-  control("Top position", "position_y", 0, 120, 28)
+  val dragButton = Button(this).apply {
+   isAllCaps = false
+   setTextColor(Color.rgb(9, 26, 18))
+   background = shape(green, 14)
+  }
+  fun updateDragButton() {
+   val unlocked = prefs.getBoolean("drag_unlocked", false)
+   dragButton.text = if (unlocked) "LOCK POSITION" else "UNLOCK POSITION · DRAG"
+   dragButton.setTextColor(if (unlocked) ink else Color.rgb(9, 26, 18))
+   dragButton.background = shape(if (unlocked) Color.rgb(92, 109, 139) else green, 14)
+  }
+  dragButton.setOnClickListener {
+   val unlocked = !prefs.getBoolean("drag_unlocked", false)
+   prefs.edit().putBoolean("drag_unlocked", unlocked).apply()
+   updateDragButton()
+  }
+  updateDragButton()
+  controls.addView(dragButton, LinearLayout.LayoutParams(-1, dp(48)))
+  addSpace(controls, 8)
+  controls.addView(text("Unlock to drag the floating indicator. Lock when finished; locked mode lets touches pass through.", 12f, muted))
+  addSpace(controls, 16)
+  control("Left position", "position_x", 0, 400, 7)
+  control("Top position", "position_y", 0, 800, 28)
   control("Horizontal padding", "padding_x", 0, 12, 3)
   control("Vertical padding", "padding_y", 0, 8, 1)
   control("Width per speed", "field_width", 44, 90, 52)
@@ -142,7 +163,7 @@ class MainActivity : Activity() {
    setOnClickListener {
     prefs.edit().putInt("position_x", 7).putInt("position_y", 28)
      .putInt("padding_x", 3).putInt("padding_y", 1)
-     .putInt("field_width", 52).apply()
+     .putInt("field_width", 52).putBoolean("drag_unlocked", false).apply()
     indicatorPreview.applySettings(prefs)
     // Recreate sliders to reflect restored settings.
     recreate()
